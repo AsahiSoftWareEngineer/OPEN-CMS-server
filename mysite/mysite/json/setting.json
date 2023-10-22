@@ -1,0 +1,17 @@
+{
+    "server-setting":{
+        "test-server": {
+            "debug": "true",
+            "static-root": "test",
+            "media-root": "test-media-root",
+            "websocket-protocol": "ws://"
+        },
+        "production-server": {
+            "debug": "false",
+            "static-root": "/usr/share/nginx/html/test/static/",
+            "media-root": "/usr/share/nginx/html/test/media/",
+            "websocket-protocol": "wss://"
+        },    
+        "Application": "test-server"
+    }
+}

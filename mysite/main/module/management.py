@@ -1,0 +1,345 @@
+from datetime import datetime
+
+from ..models import AppModel, PageModel, ContentModel, ShortTextModel, LongTextModel, DriveModel, ImageModel, PublishedModel, PublishedImageModel, PublishedLongTextModel, PublishedShortTextModel, PublishedItemModel
+
+
+class App:
+    def __init__(self, app_id=None, user_id=None):
+        self.app_id = app_id
+        self.user_id = user_id
+    
+    #全てのアプリケーションを取得するメソッド
+    def get_all(self):
+        apps = []
+        app = AppModel.objects.filter(user_id=self.user_id)
+        for i in app:
+            apps.append({
+                "id": i.app_id,
+                "api_key": i.api_key,
+                "name": i.name,
+                "created_at": i.created_at,
+                "updated_at": i.updated_at
+            })
+        return apps
+    
+    def get_apps(self):
+        if(AppModel.objects.filter(app_id=self.app_id).exists()):
+            return AppModel.objects.get(app_id=self.app_id)
+        else:
+            return 404
+    
+    #アプリケーションを作成/編集するメソッド
+    
+    def edit(self, params):
+        app = AppModel.objects.update_or_create(
+            app_id=params["id"],
+            defaults={
+                "user_id": self.user_id,
+                "name": params["name"],
+                "api_key": params["api_key"],
+                "created_at": params["created_at"],
+                "updated_at": params["updated_at"],
+            }
+        )
+        return True
+    
+    #URL一覧を取得するメソッド
+    def get_pages(self):
+        pages = []
+        page = PageModel.objects.filter(app__app_id=self.app_id)
+        for i in page:
+            pages.append({
+                "id": i.page_id,
+                "url": i.url,
+                "name": i.name,
+                "created_at": i.created_at,
+                "updated_at": i.updated_at
+            })
+        return pages
+    
+    
+    #ページを作成するメソッド
+    def create_page(self, params, app):
+        items = params["items"]
+        pages = PageModel.objects.update_or_create(
+            page_id=params["id"],
+            defaults={
+                "app": app,
+                "url": params["url"],
+                "name": params["name"],
+                "created_at": params["created_at"],
+                "updated_at": params["updated_at"]
+            }
+        )
+        for i in items:
+            page = pages[0]
+            item = ContentModel.objects.update_or_create(
+                content_id=i["id"],
+                defaults={
+                    "page": page,
+                    "name": i["name"],
+                    "col_name": i["col_name"],
+                    "type": i["type"]["value"],
+                }
+            )[0]
+            if(i["type"]["value"] == 0):
+                ShortTextModel.objects.update_or_create(
+                    parent__content_id=i["id"], 
+                    defaults={
+                        "parent": item,
+                        "content": "",
+                    }
+                )
+            elif(i["type"]["value"] == 1):
+                LongTextModel.objects.update_or_create(
+                    parent__content_id=i["id"],
+                    defaults={
+                        "parent": item,
+                        "content": "",
+                    }
+                )
+            elif(i["type"]["value"] == 2):
+                ImageModel.objects.update_or_create(
+                    parent__content_id=i["id"],
+                    defaults={
+                        "parent": item,
+                        "alt": "",
+                        "image_id": ""
+                    }
+                )
+        return True
+    
+    #下書き保存するメソッド
+    
+    def save_as_draft(self, params):
+        page = PageModel.objects.get(page_id=params["id"])
+        items = params["items"]
+        for i in items:
+            item = ContentModel.objects.update_or_create(
+                content_id=i["id"],
+                defaults={
+                    "page": page,
+                    "name": i["name"],
+                    "col_name": i["col_name"],
+                    "type": i["type"],
+                }
+            )[0]
+            if(i["type"] == 0):
+                ShortTextModel.objects.update_or_create(
+                    parent__content_id=i["id"], 
+                    defaults={
+                        "parent": item,
+                        "content": i["content"],
+                    }
+                )
+            elif(i["type"] == 1):
+                LongTextModel.objects.update_or_create(
+                    parent__content_id=i["id"],
+                    defaults={
+                        "parent": item,
+                        "content": i["content"],
+                    }
+                )
+            elif(i["type"]== 2):
+                ImageModel.objects.update_or_create(
+                    parent__content_id=i["id"],
+                    defaults={
+                        "parent": item,
+                        "alt": i["alt"],
+                        "image_id": i["image_id"],
+                    }
+                )
+            pass
+        return True
+    
+    #テキストを取得するメソッド
+    def get_short_text_by_id(self, id):
+        if(ShortTextModel.objects.filter(parent__content_id=id).exists()):
+            return ShortTextModel.objects.get(parent__content_id=id).content
+    
+    def get_long_text_by_id(self, id):
+        if(LongTextModel.objects.filter(parent__content_id=id).exists()):
+            return LongTextModel.objects.get(parent__content_id=id).content
+    
+    def get_image_by_id(self, id):
+        if(ImageModel.objects.filter(parent__content_id=id).exists()):
+            image = ImageModel.objects.get(parent__content_id=id)
+            return {
+                "image_id": image.image_id,
+                "alt": image.alt
+                }
+    
+    #下書きを取得するメソッド
+    def get_draft_by_id(self, page_id):
+        contents = []
+        content = ContentModel.objects.filter(page__page_id=page_id)
+        for i in content:
+            if(i.type == 0):
+                contents.append({
+                    "id": i.content_id,
+                    "type": i.type,
+                    "name": i.name,
+                    "col_name": i.col_name,
+                    "content": self.get_short_text_by_id(id=i.content_id)
+                })
+            elif(i.type == 1):
+                contents.append({
+                    "id": i.content_id,
+                    "type": i.type,
+                    "name": i.name,
+                    "col_name": i.col_name,
+                    "content": self.get_long_text_by_id(id=i.content_id)
+                })
+            elif(i.type == 2):
+                image = self.get_image_by_id(id=i.content_id)
+                drive = Drive(self.user_id)
+                contents.append({
+                    "id": i.content_id,
+                    "alt": image["alt"],
+                    "name": i.name,
+                    "col_name": i.col_name,
+                    "type": i.type,
+                    "image_id": image["image_id"],
+                    "url": drive.get_image_by_id(id=image["image_id"])["url"]
+                })
+        return contents
+    
+    #コンテンツを公開するメソッド
+    def publised_page(self, params):
+        parent = PageModel.objects.get(page_id=params["id"])
+        page = PublishedModel.objects.update_or_create(
+            page_id=params["id"],
+            defaults={
+                "app": parent.app,
+                "url": parent.url,
+                "published_at": datetime.now()
+            }
+        )[0]
+        items = params["items"]
+        
+        for i in items:
+            item = PublishedItemModel.objects.update_or_create(
+                content_id=i["id"],
+                defaults={
+                    "page": page,
+                    "col_name": i["col_name"],
+                    "type": i["type"],
+                }
+            )[0]
+            if(i["type"] == 0):
+                PublishedShortTextModel.objects.update_or_create(
+                    parent__content_id=i["id"], 
+                    defaults={
+                        "parent": item,
+                        "content": i["content"],
+                    }
+                )
+            elif(i["type"] == 1):
+                PublishedLongTextModel.objects.update_or_create(
+                    parent__content_id=i["id"],
+                    defaults={
+                        "parent": item,
+                        "content": i["content"],
+                    }
+                )
+            elif(i["type"]== 2):
+                PublishedImageModel.objects.update_or_create(
+                    parent__content_id=i["id"],
+                    defaults={
+                        "parent": item,
+                        "alt": i["alt"],
+                        "image_id": i["image_id"],
+                    }
+                )
+            pass
+        return True
+        
+            
+            
+class Drive:
+    def __init__(self, user_id=None):
+        self.user_id = user_id
+    
+    #画像のアップロードを処置するクラス
+    def upload(self, params, image):
+        drive = DriveModel.objects.create(
+            user_id=self.user_id,
+            image_id=params["id"],
+            image = image
+        )
+    # idで画像を取得するメソッド
+    def get_image_by_id(self, id):
+        if(DriveModel.objects.filter(image_id=id).exists()):
+            image = DriveModel.objects.get(image_id=id)
+            return {
+                "url": str(image.image),
+                "id": image.image_id,
+            }
+        else :
+            return {
+                "url": "",
+                "id": ""
+            }
+            
+            
+    #全ての画像を取得するメソッド
+    def get_all(self):
+        images = []
+        drive = DriveModel.objects.filter(user_id=self.user_id)
+        for i in drive:
+            images.append({
+                "id": i.image_id,
+                "url": str(i.image)
+            })
+        return images
+    
+ 
+class SDK:
+    def __init__(self, app_key, url):
+        self.key = app_key
+        self.url = url
+    
+    #テキストを取得するメソッド
+    def get_short_text_by_id(self, id):
+        if(ShortTextModel.objects.filter(parent__content_id=id).exists()):
+            return ShortTextModel.objects.get(parent__content_id=id).content
+    
+    def get_long_text_by_id(self, id):
+        if(LongTextModel.objects.filter(parent__content_id=id).exists()):
+            return LongTextModel.objects.get(parent__content_id=id).content
+    
+    def get_image_by_id(self, id):
+        if(ImageModel.objects.filter(parent__content_id=id).exists()):
+            image = ImageModel.objects.get(parent__content_id=id)
+            return {
+                "image_id": image.image_id,
+                "alt": image.alt
+                }
+    
+    def get_content_as_json(self):
+        contents = {}
+        app = AppModel.objects.get(app_key=self.key)
+        page = PublishedModel.objects.get(app=app, url=self.url)
+        
+        content = PublishedItemModel.objects.filter(page=page)
+        for i in content:
+            if(i.type == 0):
+                contents[i.col_name] = self.get_short_text_by_id(id=i.content_id)
+            elif(i.type == 1):
+                contents[i.col_name] = self.get_long_text_by_id(id=i.content_id)
+            elif(i.type == 2):
+                image = self.get_image_by_id(id=i.content_id)
+                drive = Drive(self.user_id)
+                contents[i.col_name] = {
+                    "image_id": image["image_id"],
+                    "url": drive.get_image_by_id(id=image["image_id"])["url"],
+                    "alt": image["alt"],
+                }
+                
+        return contents
+            
+           
+            
+        
+        
+    
