@@ -1,4 +1,5 @@
 from distutils.command.upload import upload
+from turtle import update
 from django.db import models
 
 
@@ -15,15 +16,22 @@ class PageModel(models.Model):
     page_id = models.TextField()
     url = models.URLField()
     name = models.CharField(max_length=255)
+    is_blog_mode = models.BooleanField(default=False)
     created_at = models.DateTimeField(null=True)
     updated_at = models.DateTimeField(null=True)
+    
 
+    
 class ContentModel(models.Model):
     page = models.ForeignKey(PageModel, on_delete=models.CASCADE)
     content_id = models.TextField()
     name = models.CharField(max_length=255)
     col_name = models.CharField(max_length=255)
     type = models.IntegerField()
+    
+    
+
+    
 
 class ShortTextModel(models.Model):
     parent = models.ForeignKey(ContentModel, on_delete=models.CASCADE)
@@ -33,6 +41,11 @@ class LongTextModel(models.Model):
     parent = models.ForeignKey(ContentModel, on_delete=models.CASCADE)
     content = models.TextField()
 
+class RichTextModel(models.Model):
+    parent = models.ForeignKey(ContentModel, on_delete=models.CASCADE)
+    content = models.TextField()
+    
+    
 class ImageModel(models.Model):
     parent = models.ForeignKey(ContentModel, on_delete=models.CASCADE)
     image_id = models.TextField() 
@@ -43,8 +56,6 @@ class DriveModel(models.Model):
     image_id = models.TextField()
     image = models.ImageField(upload_to="img/")
     
-# Create your models here.
-
 
 
 
@@ -74,5 +85,7 @@ class PublishedImageModel(models.Model):
     image_id = models.TextField()
 
 
-    
-    
+
+class PublishedRichTextModel(models.Model):
+    parent = models.ForeignKey(PublishedItemModel, on_delete=models.CASCADE)
+    content = models.TextField()

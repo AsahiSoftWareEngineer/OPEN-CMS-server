@@ -11,7 +11,7 @@ from django.middleware.csrf import get_token
 import json
 
 from .module.auth import  Account
-from .module.management import App, Drive
+from .module.management import App, Drive, SDK
 
 
 # Create your views here.
@@ -113,14 +113,34 @@ class PageView(View):
         
         elif(params["command"] == "get_draft"):
             app = App(user_id=user_id, app_id=None)
-            return JsonResponse({"contents": app.get_draft_by_id(page_id=params["page_id"])})
+            return JsonResponse({
+                "info": app.get_page_by_id(page_id=params["page_id"]),
+                "contents": app.get_draft_by_id(page_id=params["page_id"])
+                })
         
         elif(params["command"] == "save_as_draft"):
-            app = App(user_id=user_id, app_id=None)
+            app = App(user_id=user_id, app_id=params["app_id"])
             return JsonResponse({"response": app.save_as_draft(params)})
         
         elif(params["command"] == "published"):
-            app = App(user_id=user_id, app_id=None)
+            app = App(user_id=user_id, app_id=params["app_id"])
             app.save_as_draft(params)
             return JsonResponse({"response":  app.publised_page(params)})
+
+
+#本番データを取得して返すビュー
+@method_decorator(csrf_exempt, name="dispatch")
+class APIGetView(View):
+    def post(self, request, *args, **kwargs):
+        params = json.loads(request.body)
+        sdk = SDK(app_key=params["key"], url=params["url"])
+        return JsonResponse(sdk.get_content_as_json())
+
+@method_decorator(csrf_exempt, name="dispatch")
+class APIArrayView(View):
+    def post(self, request, *args, **kwargs):
+        params = json.loads(request.body)
+        sdk = SDK(app_key=params["key"], url=params["url"])
+        return JsonResponse({"contents": sdk.get_contents()})
     
+        

@@ -1,6 +1,7 @@
+from asyncio import constants
 from datetime import datetime
 
-from ..models import AppModel, PageModel, ContentModel, ShortTextModel, LongTextModel, DriveModel, ImageModel, PublishedModel, PublishedImageModel, PublishedLongTextModel, PublishedShortTextModel, PublishedItemModel
+from ..models import AppModel, PageModel, ContentModel, ShortTextModel, LongTextModel, RichTextModel, DriveModel, ImageModel, PublishedModel, PublishedImageModel, PublishedLongTextModel, PublishedShortTextModel, PublishedItemModel,  PublishedRichTextModel
 
 
 class App:
@@ -29,7 +30,6 @@ class App:
             return 404
     
     #アプリケーションを作成/編集するメソッド
-    
     def edit(self, params):
         app = AppModel.objects.update_or_create(
             app_id=params["id"],
@@ -53,14 +53,17 @@ class App:
                 "url": i.url,
                 "name": i.name,
                 "created_at": i.created_at,
-                "updated_at": i.updated_at
+                "updated_at": i.updated_at,
+                "is_blog": i.is_blog_mode,
             })
+        print(self.app_id)
         return pages
     
     
     #ページを作成するメソッド
     def create_page(self, params, app):
         items = params["items"]
+        print(params)
         pages = PageModel.objects.update_or_create(
             page_id=params["id"],
             defaults={
@@ -68,7 +71,8 @@ class App:
                 "url": params["url"],
                 "name": params["name"],
                 "created_at": params["created_at"],
-                "updated_at": params["updated_at"]
+                "updated_at": params["updated_at"],
+                "is_blog_mode":params["is_blog_mode"]
             }
         )
         for i in items:
@@ -107,12 +111,29 @@ class App:
                         "image_id": ""
                     }
                 )
+            elif(i["type"]["value"] == 3):
+                LongTextModel.objects.update_or_create(
+                    parent__content_id=i["id"],
+                    defaults={
+                        "parent": item,
+                        "content": "",
+                    }
+                )
         return True
     
     #下書き保存するメソッド
     
     def save_as_draft(self, params):
-        page = PageModel.objects.get(page_id=params["id"])
+        
+        page = PageModel.objects.update_or_create(
+            page_id=params["id"],
+            is_blog_mode=False,
+            defaults={
+                "page_id": params["id"],
+                "app":self.get_apps(),
+                "url": params["url"],
+                "name": params["name"],
+            })[0]
         items = params["items"]
         for i in items:
             item = ContentModel.objects.update_or_create(
@@ -149,6 +170,14 @@ class App:
                         "image_id": i["image_id"],
                     }
                 )
+            elif(i["type"] == 3):
+                RichTextModel.objects.update_or_create(
+                    parent__content_id=i["id"],
+                    defaults={
+                        "parent": item,
+                        "content": i["content"],
+                    }
+                )
             pass
         return True
     
@@ -161,6 +190,10 @@ class App:
         if(LongTextModel.objects.filter(parent__content_id=id).exists()):
             return LongTextModel.objects.get(parent__content_id=id).content
     
+    def get_rich_text_by_id(self, id):
+        if(RichTextModel.objects.filter(parent__content_id=id).exists()):
+            return RichTextModel.objects.get(parent__content_id=id).content
+    
     def get_image_by_id(self, id):
         if(ImageModel.objects.filter(parent__content_id=id).exists()):
             image = ImageModel.objects.get(parent__content_id=id)
@@ -168,6 +201,21 @@ class App:
                 "image_id": image.image_id,
                 "alt": image.alt
                 }
+    def get_page_by_id(self, page_id):
+        if(PageModel.objects.filter(page_id=page_id).exists()):
+            page = PageModel.objects.get(page_id=page_id)
+            return {
+                "name":page.name,
+                "id":page.page_id,
+                "app_id": page.app.app_id,
+                "url": page.url,
+                "is_blog": page.is_blog_mode,
+            }
+        else:
+            return {
+                "message": "Page not found"
+            }
+            
     
     #下書きを取得するメソッド
     def get_draft_by_id(self, page_id):
@@ -201,6 +249,14 @@ class App:
                     "type": i.type,
                     "image_id": image["image_id"],
                     "url": drive.get_image_by_id(id=image["image_id"])["url"]
+                })
+            elif(i.type == 3):
+                contents.append({
+                    "id": i.content_id,
+                    "type": i.type,
+                    "name": i.name,
+                    "col_name": i.col_name,
+                    "content": self.get_rich_text_by_id(id=i.content_id)
                 })
         return contents
     
@@ -251,10 +307,18 @@ class App:
                         "image_id": i["image_id"],
                     }
                 )
+            elif(i["type"] == 3):
+                PublishedRichTextModel.objects.update_or_create(
+                    parent__content_id=i["id"],
+                    defaults={
+                        "parent": item,
+                        "content": i["content"],
+                    }
+                )
             pass
         return True
         
-            
+
             
 class Drive:
     def __init__(self, user_id=None):
@@ -301,16 +365,19 @@ class SDK:
     
     #テキストを取得するメソッド
     def get_short_text_by_id(self, id):
-        if(ShortTextModel.objects.filter(parent__content_id=id).exists()):
-            return ShortTextModel.objects.get(parent__content_id=id).content
+        if(PublishedShortTextModel.objects.filter(parent__content_id=id).exists()):
+            return PublishedShortTextModel.objects.get(parent__content_id=id).content
     
     def get_long_text_by_id(self, id):
-        if(LongTextModel.objects.filter(parent__content_id=id).exists()):
-            return LongTextModel.objects.get(parent__content_id=id).content
+        if(PublishedLongTextModel.objects.filter(parent__content_id=id).exists()):
+            return PublishedLongTextModel.objects.get(parent__content_id=id).content
+    def get_rich_text_by_id(self, id):
+        if(PublishedRichTextModel.objects.filter(parent__content_id=id).exists()):
+            return PublishedRichTextModel.objects.get(parent__content_id=id).content
     
     def get_image_by_id(self, id):
-        if(ImageModel.objects.filter(parent__content_id=id).exists()):
-            image = ImageModel.objects.get(parent__content_id=id)
+        if(PublishedImageModel.objects.filter(parent__content_id=id).exists()):
+            image = PublishedImageModel.objects.get(parent__content_id=id)
             return {
                 "image_id": image.image_id,
                 "alt": image.alt
@@ -318,10 +385,11 @@ class SDK:
     
     def get_content_as_json(self):
         contents = {}
-        app = AppModel.objects.get(app_key=self.key)
-        page = PublishedModel.objects.get(app=app, url=self.url)
+        app = AppModel.objects.get(api_key=self.key)
+        page = PublishedModel.objects.get(app__app_id=app.app_id, url=self.url)
         
         content = PublishedItemModel.objects.filter(page=page)
+        contents["url"] = self.url.split("/")
         for i in content:
             if(i.type == 0):
                 contents[i.col_name] = self.get_short_text_by_id(id=i.content_id)
@@ -329,14 +397,29 @@ class SDK:
                 contents[i.col_name] = self.get_long_text_by_id(id=i.content_id)
             elif(i.type == 2):
                 image = self.get_image_by_id(id=i.content_id)
-                drive = Drive(self.user_id)
+                drive = Drive(app.user_id)
                 contents[i.col_name] = {
                     "image_id": image["image_id"],
                     "url": drive.get_image_by_id(id=image["image_id"])["url"],
                     "alt": image["alt"],
                 }
-                
+            elif(i.type == 3):
+                contents[i.col_name] = self.get_rich_text_by_id(id=i.content_id)
         return contents
+    
+    def get_contents(self):
+        app = AppModel.objects.get(api_key=self.key)
+        pages = PublishedModel.objects.filter(app__app_id=app.app_id)
+        contents = []
+        for i in pages:
+            if(self.url in i.url):
+                sdk = SDK(app_key=self.key, url=i.url)
+                contents.append(sdk.get_content_as_json())
+        contents.reverse()
+        return contents
+    
+    
+        
             
            
             

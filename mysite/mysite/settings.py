@@ -47,12 +47,7 @@ with open(jsonFilepath, "r", encoding='utf8') as f:
             
         BASESTATIC = ""
         BASEMEDIA = os.path.join(BASE_DIR, 'media')
-        DATABASE_SET = {
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',
-            'NAME': 'rivcms_db',
-            'AUTO_REQUESTS': True
-            }
-
+  
     elif (application == "production-server"):
         serverSettingdict = serverSettingdict[application]
         if (serverSettingdict["debug"] == "true"):
@@ -62,25 +57,9 @@ with open(jsonFilepath, "r", encoding='utf8') as f:
         
         BASESTATIC = serverSettingdict["static-root"]
         BASEMEDIA = serverSettingdict["media-root"]
-        """
-        DATABASE_SET = {
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',
-            'NAME': 'sidelop_db',
-            'USER': 'sidelops_master',
-            'PASSWORD': 'cKd3PUkffQBw',
-            'HOST': 'sidelops.cdgwjjblcvw5.ap-northeast-1.rds.amazonaws.com',
-            'PORT': '5432',
-            'AUTO_REQUESTS': True,
-            }
+      
         
-        """
-        
-        DATABASE_SET = {
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',
-            'NAME': 'rivcms_db',
-            'AUTO_REQUESTS': True
-            }
-        
+      
     
     
     
@@ -101,7 +80,7 @@ SECRET_KEY = 'django-insecure-#-38rqf_sxqpyc&s)x#$9$sq&0i%p#in)c24b12nzkf(s72y2r
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = BASEDEBUG
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost"]
 
 
 # Application definition
@@ -141,12 +120,13 @@ ROOT_URLCONF = 'mysite.urls'
 
 CORS_ORIGIN_WHITELIST = [
      'http://localhost:5173',
-     "https://riv-crm.mapworks.tech"
-]
+     'http://localhost:3000',]
 
 
 CORS_ALLOW_CREDENTIALS = True
-CSRF_TRUSTED_ORIGINS = ['http://localhost:5173',  "https://riv-crm.mapworks.tech"]
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:5173', 
+    'http://localhost:3000']
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = None
 
@@ -175,7 +155,10 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    'default': DATABASE_SET
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    }
 }
 
 
@@ -286,8 +269,6 @@ EMAIL_HOST_USER = env("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = True
 
-
-CLIENT_HOST = "https://test-cibuscloud-client.mapworks.tech"
 
 LOGGING = {
     'version': 1,

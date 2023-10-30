@@ -12,6 +12,6 @@
             "media-root": "/usr/share/nginx/html/test/media/",
             "websocket-protocol": "wss://"
         },    
-        "Application": "test-server"
+        "Application": "production-server"
     }
 }
