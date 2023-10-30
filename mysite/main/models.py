@@ -7,7 +7,7 @@ class AppModel(models.Model):
     user_id = models.IntegerField()
     app_id = models.TextField()
     api_key = models.TextField()
-    name = models.CharField()
+    name = models.CharField(max_length=255)
     created_at = models.DateTimeField(null=True)
     updated_at = models.DateTimeField(null=True)
 
