@@ -56,14 +56,12 @@ class App:
                 "updated_at": i.updated_at,
                 "is_blog": i.is_blog_mode,
             })
-        print(self.app_id)
         return pages
     
     
     #ページを作成するメソッド
     def create_page(self, params, app):
         items = params["items"]
-        print(params)
         pages = PageModel.objects.update_or_create(
             page_id=params["id"],
             defaults={
