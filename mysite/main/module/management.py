@@ -419,15 +419,21 @@ class SDK:
         return contents
     
     def get_contents(self):
-        app = AppModel.objects.get(api_key=self.key)
-        pages = PublishedModel.objects.filter(app__app_id=app.app_id)
-        contents = []
-        for i in pages:
-            if(self.url in i.url):
-                sdk = SDK(app_key=self.key, url=i.url)
-                contents.append(sdk.get_content_as_json())
-        contents.reverse()
-        return contents
+        app = object()
+        if(AppModel.objects.filter(api_key=self.key).exists()):
+            app = AppModel.objects.get(api_key=self.key)
+            pages = PublishedModel.objects.filter(app__app_id=app.app_id)
+            contents = []
+            for i in pages:
+                if(self.url in i.url):
+                    sdk = SDK(app_key=self.key, url=i.url)
+                    contents.append(sdk.get_content_as_json())
+            contents.reverse()
+            return contents
+            
+            
+        else:
+            return []
     
     
         
