@@ -385,6 +385,9 @@ class SDK:
     
     def get_content_as_json(self):
         contents = {}
+        if(not (AppModel.objects.filter(api_key=self.key).exists() and PublishedModel.objects.filter(app__app_id=app.app_id, url=self.url).exists())):
+            return contents
+        
         app = AppModel.objects.get(api_key=self.key)
         page = PublishedModel.objects.get(app__app_id=app.app_id, url=self.url)
         
