@@ -383,8 +383,9 @@ class SDK:
     
     def get_content_as_json(self):
         contents = {}
-        app = None
-        page = None
+        
+        app = object()
+        page = object()
         
         if(AppModel.objects.filter(api_key=self.key).exists()): 
             app = AppModel.objects.get(api_key=self.key)
