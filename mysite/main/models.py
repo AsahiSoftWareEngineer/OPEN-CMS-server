@@ -1,5 +1,4 @@
-from distutils.command.upload import upload
-from turtle import update
+
 from django.db import models
 
 
