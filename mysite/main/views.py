@@ -11,7 +11,7 @@ from django.middleware.csrf import get_token
 import json
 
 from .module.auth import  Account
-from .module.management import App, Drive, SDK
+from .module.management import App, Drive, SDK, Mail
 
 
 # Create your views here.
@@ -143,4 +143,16 @@ class APIArrayView(View):
         sdk = SDK(app_key=params["key"], url=params["url"])
         return JsonResponse({"contents": sdk.get_contents()})
     
+@method_decorator(csrf_exempt, name="dispatch")
+class APISendView(View):
+    def post(self, request, *args, **kwargs):
+        params = json.loads(request.body)
+        sdk = Mail(email=params["email"])
+        return JsonResponse({"response":sdk.receive(
+            name=params["name"],
+            company=params["company"],
+            subject=params["subject"],
+            message=params["message"],
+        ) })
         
+    

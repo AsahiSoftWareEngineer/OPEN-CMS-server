@@ -1,8 +1,9 @@
 from asyncio import constants
 from datetime import datetime
-
+import os
 from ..models import AppModel, PageModel, ContentModel, ShortTextModel, LongTextModel, RichTextModel, DriveModel, ImageModel, PublishedModel, PublishedImageModel, PublishedLongTextModel, PublishedShortTextModel, PublishedItemModel,  PublishedRichTextModel
-
+from django.core.mail import send_mail
+from mysite import settings
 
 class App:
     def __init__(self, app_id=None, user_id=None):
@@ -401,6 +402,7 @@ class SDK:
         
         content = PublishedItemModel.objects.filter(page=page)
         contents["url"] = self.url.split("/")
+        contents["published_at"] = page.published_at.strftime("%Y-%m-%d")
         for i in content:
             if(i.type == 0):
                 contents[i.col_name] = self.get_short_text_by_id(id=i.content_id)
@@ -437,7 +439,36 @@ class SDK:
     
     
         
+
+class Mail:
+    def __init__(self, email):
+        self.email = email
+        self.response_path =  os.path.abspath("main/module/mail/response.txt")
+        self.notification_path = os.path.abspath("main/module/mail/notification.txt")
+    
+    def receive(self, name, message, subject, company):
+        f = open(self.response_path, 'r')
+        response_mail = f.read()
+        f.close()
+        
+        f = open(self.notification_path, "r")
+        notification_mail = f.read()
+        f.close()
+        
+      
+        try:
+            response_subject = "お問い合わせを受け付けました"
+            from_mail = getattr(settings, "DEFAULT_FROM_EMAIL", None)
+            recipirent_list = [self.email]
+            send_mail(response_subject, response_mail, from_mail, recipirent_list) 
             
+
+            notification_subject = "新規お問い合わせ通知"
+            notification_message = notification_mail.replace(r"{{email}}", self.email).replace(r"{{name}}", name).replace(r"{{message}}", message).replace(r"{{subject}}", subject).replace(r"{{company}}", company)
+            send_mail(notification_subject, notification_message, from_mail, [from_mail])
+            return True
+        except:
+            return False
            
             
         
