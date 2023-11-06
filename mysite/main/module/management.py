@@ -385,21 +385,14 @@ class SDK:
     def get_content_as_json(self):
         contents = {}
         
-        app = object()
-        page = object()
+    
         
-        if(AppModel.objects.filter(api_key=self.key).exists()): 
-            app = AppModel.objects.get(api_key=self.key)
-            if(PublishedModel.objects.filter(app__app_id=app.app_id, url=self.url).exists()):
-                page = PublishedModel.objects.get(app__app_id=app.app_id, url=self.url)
-            else:
-                return contents
-        else:
-            return contents
+        app = AppModel.objects.get(api_key=self.key) if AppModel.objects.filter(api_key=self.key).exists() else None
+        page = PublishedModel.objects.get(app__app_id=app.app_id, url=self.url) if PublishedModel.objects.filter(app__app_id=app.app_id, url=self.url).exists() else None
         
-      
-       
-        
+        if(not (app and page)):
+            return {}
+   
         content = PublishedItemModel.objects.filter(page=page)
         contents["url"] = self.url.split("/")
         contents["published_at"] = page.published_at.strftime("%Y-%m-%d")
@@ -432,8 +425,7 @@ class SDK:
                     contents.append(sdk.get_content_as_json())
             contents.reverse()
             return contents
-            
-            
+
         else:
             return []
     
