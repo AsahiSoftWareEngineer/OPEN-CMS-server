@@ -390,7 +390,7 @@ class SDK:
         app = AppModel.objects.get(api_key=self.key) if AppModel.objects.filter(api_key=self.key).exists() else None
         page = PublishedModel.objects.get(app__app_id=app.app_id, url=self.url) if PublishedModel.objects.filter(app__app_id=app.app_id, url=self.url).exists() else None
         
-        if(not (app and page)):
+        if(app is None or page is None):
             return {}
    
         content = PublishedItemModel.objects.filter(page=page)
