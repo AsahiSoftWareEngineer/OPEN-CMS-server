@@ -425,7 +425,6 @@ class SDK:
                     contents.append(sdk.get_content_as_json())
             contents.reverse()
             return contents
-
         else:
             return []
     
